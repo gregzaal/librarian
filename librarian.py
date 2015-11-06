@@ -37,6 +37,7 @@ TODO:
     Lists should be collapsed by default and expanded if user wants to see details.
     Collapse panel by default
     Avoid iterating over all objects on every redraw (maybe)
+    Maybe make list into a bit of a heirarchy? Nest materials & mesh data under the objects they belong to...
 '''
 
 def get_linked_data():
