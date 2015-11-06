@@ -35,9 +35,12 @@ import bpy
 TODO:
     Clicking on datablocks should do something (select object, go to material, particle settings, etc...)
     Lists should be collapsed by default and expanded if user wants to see details.
+    Collapse panel by default
+    Avoid iterating over all objects on every redraw (maybe)
 '''
 
 def get_linked_data():
+    # Warning: Gets run for every redraw
     type_iter = type(bpy.data.objects)
 
     for attr in dir(bpy.data):
