@@ -20,7 +20,7 @@ bl_info = {
     "name": "Librarian",
     "description": "View what datablocks are coming from which linked libraries",
     "author": "Greg Zaal",
-    "version": (0, 1),
+    "version": (0, 2),
     "blender": (2, 76, 0),
     "location": "Properties Editor > Scene > Librarian panel",
     "warning": "",
@@ -34,11 +34,14 @@ import bpy
 '''
 TODO:
     Clicking on datablocks should do something (select object, go to material, particle settings, etc...)
-    Lists should be collapsed by default and expanded if user wants to see details.
-    Collapse panel by default
     Avoid iterating over all objects on every redraw (maybe)
     Maybe make list into a bit of a heirarchy? Nest materials & mesh data under the objects they belong to...
 '''
+
+
+class LibrarianSettings(bpy.types.PropertyGroup):
+    expanded = bpy.props.StringProperty()  # Used to keep track of which libs are expanded
+
 
 def get_linked_data():
     # Warning: Gets run for every redraw
@@ -116,6 +119,27 @@ def type_icon(t):
     else:
         return "QUESTION"  # default icon
 
+def pad_lib_name(lib):
+    """ Used to ensure lib names do not match inside each other ('Lib' won't match 'Lib.001') """
+    return ("__###_" + lib + "_###__")
+
+
+class LibrarianToggleExpand(bpy.types.Operator):
+    """Show/hide the list of datablocks linked"""
+    bl_idname = "librarian.expand"
+    bl_label = "Expand"
+    lib = bpy.props.StringProperty()  # name of lib to toggle
+
+    def execute(self, context):
+        expanded = context.scene.librarian_settings.expanded
+        if self.lib in expanded:
+            expanded = expanded.replace(self.lib, "")
+        else:
+            expanded += self.lib
+
+        context.scene.librarian_settings.expanded = expanded
+
+        return {'FINISHED'}
 
 
 class LibrarianImagePathsPanel(bpy.types.Panel):
@@ -124,10 +148,12 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "scene"
+    bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
         layout = self.layout
         linked_data = get_linked_data()
+        settings = context.scene.librarian_settings
 
         libs = {}  # Dictionary of libraries, with items being lists of linked assets
         for lib in bpy.data.libraries:
@@ -143,22 +169,32 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
             row = col.row()
             row.label(bpy.path.basename(lib.filepath))
             col.separator()
-            row = col.row(align=True)
+            mrow = col.row()
+            padded_name = pad_lib_name(lib.name)
+            is_expanded = padded_name in settings.expanded
+            mrow.operator('librarian.expand', text="", emboss=False, icon='TRIA_RIGHT' if not is_expanded else 'TRIA_DOWN').lib = padded_name
+            row = mrow.row(align=True)
             row.alignment = 'CENTER'
             type_counts = count_types(libs[lib])
             for t in type_counts:
                 row.label(str(type_counts[t]), icon=type_icon(t))
-            col.separator()
-            for d in libs[lib]:
-                col.label(d.name, icon=type_icon(d.rna_type.name))
+            if is_expanded:
+                col.separator()
+                for d in libs[lib]:
+                    col.label(d.name, icon=type_icon(d.rna_type.name))
+        if len(libs) == 0:
+            maincol.label("There are no linked libraries :)")
         
 
 
 def register():
     bpy.utils.register_module(__name__)
 
+    bpy.types.Scene.librarian_settings = bpy.props.PointerProperty(type=LibrarianSettings)
 
 def unregister():
+    del bpy.types.Scene.librarian_settings
+
     bpy.utils.unregister_module(__name__)
 
 if __name__ == "__main__":
