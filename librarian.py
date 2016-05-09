@@ -20,8 +20,8 @@ bl_info = {
     "name": "Librarian",
     "description": "View what datablocks are coming from which linked libraries",
     "author": "Greg Zaal",
-    "version": (0, 2),
-    "blender": (2, 76, 0),
+    "version": (0, 3),
+    "blender": (2, 77, 0),
     "location": "Properties Editor > Scene > Librarian panel",
     "warning": "",
     "wiki_url": "",
@@ -30,6 +30,8 @@ bl_info = {
 
 
 import bpy
+import os
+from bpy_extras.io_utils import ImportHelper
 
 '''
 TODO:
@@ -142,6 +144,60 @@ class LibrarianToggleExpand(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
+    """Import all objects from another file into the current scene, keeping the linked libraries in tact"""
+    bl_idname = 'librarian.import'
+    bl_label = 'Import Objects from File'
+    bl_options = {'REGISTER', 'UNDO'}
+    directory = bpy.props.StringProperty(subtype="DIR_PATH")
+    filename = bpy.props.StringProperty(subtype="FILE_NAME")    
+    # files = CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'})
+
+    def execute(self, context):
+        directory = self.directory
+        filename = self.filename
+
+        # DEBUG
+        print ("\nDIR:", directory)
+        print ("FN:", filename)
+
+        if not filename:
+            self.report({'ERROR'}, "No file chosen")
+            return {'CANCELLED'}
+
+        filepath = os.path.join(directory, filename)
+
+        if not os.path.exists(filepath):
+            self.report({'ERROR'}, filepath+" does not exist!")
+            return {'CANCELLED'}
+
+        # Get all the scenes from the selected file
+        with bpy.data.libraries.load(filepath) as (data_from, data_to):
+            data_to.scenes = data_from.scenes
+        
+        # Add all objects from those scenes into the current scene
+        cur_scene = context.scene
+        scene_names = []
+        for sc in data_to.scenes:
+            scene_names.append (sc.name)
+            for obj in sc.objects:
+                cur_scene.objects.link(obj)
+                obj.select = True
+
+        print ("2")
+        context.screen.scene = cur_scene
+        print ("3")
+
+        # Remove imported scenes
+        print ("4")
+        for sc in data_to.scenes:
+            print ("5:", sc)
+            bpy.data.scenes.remove(sc)
+            print ("6:", sc)
+
+        return {'FINISHED'}
+
+
 class LibrarianImagePathsPanel(bpy.types.Panel):
     bl_label = "Librarian"
     bl_idname = "OBJECT_PT_Librarian"
@@ -184,6 +240,8 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
                     col.label(d.name, icon=type_icon(d.rna_type.name))
         if len(libs) == 0:
             maincol.label("There are no linked libraries :)")
+        
+        maincol.operator('librarian.import', icon='LIBRARY_DATA_DIRECT')
         
 
 
