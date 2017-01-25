@@ -20,7 +20,7 @@ bl_info = {
     "name": "Librarian",
     "description": "View what datablocks are coming from which linked libraries",
     "author": "Greg Zaal",
-    "version": (0, 3),
+    "version": (1, 0, 0),
     "blender": (2, 77, 0),
     "location": "Properties Editor > Scene > Librarian panel",
     "warning": "",
@@ -32,6 +32,7 @@ bl_info = {
 import bpy
 import os
 from bpy_extras.io_utils import ImportHelper
+from . import addon_updater_ops
 
 '''
 TODO:
@@ -40,6 +41,45 @@ TODO:
     Maybe make list into a bit of a heirarchy? Nest materials & mesh data under the objects they belong to...
 '''
 
+class LibrarianPrefs(bpy.types.AddonPreferences):
+    bl_idname = __package__
+
+    # addon updater preferences
+    auto_check_update = bpy.props.BoolProperty(
+        name = "Auto-check for Update",
+        description = "If enabled, auto-check for updates using an interval",
+        default = False,
+        )
+    updater_intrval_months = bpy.props.IntProperty(
+        name='Months',
+        description = "Number of months between checking for updates",
+        default=0,
+        min=0
+        )
+    updater_intrval_days = bpy.props.IntProperty(
+        name='Days',
+        description = "Number of days between checking for updates",
+        default=7,
+        min=0,
+        )
+    updater_intrval_hours = bpy.props.IntProperty(
+        name='Hours',
+        description = "Number of hours between checking for updates",
+        default=0,
+        min=0,
+        max=23
+        )
+    updater_intrval_minutes = bpy.props.IntProperty(
+        name='Minutes',
+        description = "Number of minutes between checking for updates",
+        default=0,
+        min=0,
+        max=59
+        )
+
+    def draw(self, context):
+        layout=self.layout
+        addon_updater_ops.update_settings_ui(self, context)
 
 class LibrarianSettings(bpy.types.PropertyGroup):
     expanded = bpy.props.StringProperty()  # Used to keep track of which libs are expanded
@@ -219,6 +259,8 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
+        addon_updater_ops.check_for_update_background(context)
+
         layout = self.layout
         linked_data = get_linked_data()
         settings = context.scene.librarian_settings
@@ -266,10 +308,14 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
         
         maincol.separator()
         maincol.operator('librarian.import', icon='LIBRARY_DATA_DIRECT')
+
+        addon_updater_ops.update_notice_box_ui(self, context)
         
 
 
 def register():
+    addon_updater_ops.register(bl_info)
+
     bpy.utils.register_module(__name__)
 
     bpy.types.Scene.librarian_settings = bpy.props.PointerProperty(type=LibrarianSettings)
