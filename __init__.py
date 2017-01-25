@@ -20,7 +20,7 @@ bl_info = {
     "name": "Librarian",
     "description": "View what datablocks are coming from which linked libraries",
     "author": "Greg Zaal",
-    "version": (1, 0, 1),
+    "version": (1, 0, 2),
     "blender": (2, 77, 0),
     "location": "Properties Editor > Scene > Librarian panel",
     "warning": "",
@@ -251,7 +251,7 @@ class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
 
 #####  UI  #####
 class LibrarianImagePathsPanel(bpy.types.Panel):
-    bl_label = "Librarian Testy Test"
+    bl_label = "Librarian"
     bl_idname = "OBJECT_PT_Librarian"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
