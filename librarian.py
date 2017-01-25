@@ -44,7 +44,7 @@ TODO:
 class LibrarianSettings(bpy.types.PropertyGroup):
     expanded = bpy.props.StringProperty()  # Used to keep track of which libs are expanded
 
-
+#####  Functions  #####
 def get_linked_data():
     # Warning: Gets run for every redraw
     type_iter = type(bpy.data.objects)
@@ -100,6 +100,7 @@ def type_icon(t):
     'Grease Pencil': 'GREASEPENCIL',
     'Group': 'GROUP',
     'Image': 'IMAGE_DATA',
+    'Key': 'KEY_HLT',
     'Lattice': 'LATTICE_DATA',
     'Mask': 'MOD_MASK',
     'Material': 'MATERIAL',
@@ -125,7 +126,7 @@ def pad_lib_name(lib):
     """ Used to ensure lib names do not match inside each other ('Lib' won't match 'Lib.001') """
     return ("__###_" + lib + "_###__")
 
-
+#####  Operators #####
 class LibrarianToggleExpand(bpy.types.Operator):
     """Show/hide the list of datablocks linked"""
     bl_idname = "librarian.expand"
@@ -143,6 +144,17 @@ class LibrarianToggleExpand(bpy.types.Operator):
 
         return {'FINISHED'}
 
+class LibrarianReload(bpy.types.Operator):
+    """Refresh this library to fetch any changes made to that file"""
+    bl_idname = "librarian.reload"
+    bl_label = "Reload"
+    lib = bpy.props.StringProperty()
+    bl_options = {'INTERNAL'}
+
+    def execute(self, context):
+        bpy.data.libraries[self.lib].reload()
+
+        return {'FINISHED'}
 
 class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
     """Import all objects from another file into the current scene, keeping the linked libraries in tact"""
@@ -197,7 +209,7 @@ class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
 
         return {'FINISHED'}
 
-
+#####  UI  #####
 class LibrarianImagePathsPanel(bpy.types.Panel):
     bl_label = "Librarian"
     bl_idname = "OBJECT_PT_Librarian"
@@ -220,27 +232,39 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
 
         maincol = layout.column(align=True)
         for lib in libs:
+            padded_name = pad_lib_name(lib.name)
+            is_expanded = padded_name in settings.expanded
+            
             box = maincol.box()
             col = box.column(align=True)
             row = col.row()
+            row.operator('librarian.expand', text="", emboss=False, icon='TRIA_RIGHT' if not is_expanded else 'TRIA_DOWN').lib = padded_name
             row.label(bpy.path.basename(lib.filepath))
+            
+            row = col.row(align=True)
+            row.prop(lib, 'filepath', text="")
+            row.operator('librarian.reload', icon='FILE_REFRESH', text="").lib=lib.name
             col.separator()
-            mrow = col.row()
-            padded_name = pad_lib_name(lib.name)
-            is_expanded = padded_name in settings.expanded
-            mrow.operator('librarian.expand', text="", emboss=False, icon='TRIA_RIGHT' if not is_expanded else 'TRIA_DOWN').lib = padded_name
-            row = mrow.row(align=True)
-            row.alignment = 'CENTER'
-            type_counts = count_types(libs[lib])
-            for t in type_counts:
-                row.label(str(type_counts[t]), icon=type_icon(t))
+
             if is_expanded:
+                type_counts = count_types(libs[lib])
+                row = col.row(align=True)
+                row.alignment = 'CENTER'
+                for t in type_counts:
+                    row.label(str(type_counts[t]), icon=type_icon(t))
+                    
+                    # # Debug: print unidentified types
+                    # ti = type_icon(t)
+                    # if ti == "QUESTION":
+                    #     print (t)
+
                 col.separator()
                 for d in libs[lib]:
                     col.label(d.name, icon=type_icon(d.rna_type.name))
         if len(libs) == 0:
             maincol.label("There are no linked libraries :)")
         
+        maincol.separator()
         maincol.operator('librarian.import', icon='LIBRARY_DATA_DIRECT')
         
 
