@@ -282,13 +282,13 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
             row = col.row()
             row.operator('librarian.expand', text="", emboss=False, icon='TRIA_RIGHT' if not is_expanded else 'TRIA_DOWN').lib = padded_name
             row.label(bpy.path.basename(lib.filepath))
-            
-            row = col.row(align=True)
-            row.prop(lib, 'filepath', text="")
-            row.operator('librarian.reload', icon='FILE_REFRESH', text="").lib=lib.name
-            col.separator()
 
             if is_expanded:
+                row = col.row(align=True)
+                row.prop(lib, 'filepath', text="")
+                row.operator('librarian.reload', icon='FILE_REFRESH', text="").lib=lib.name
+                col.separator()
+
                 type_counts = count_types(libs[lib])
                 row = col.row(align=True)
                 row.alignment = 'CENTER'
