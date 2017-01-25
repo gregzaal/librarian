@@ -20,7 +20,7 @@ bl_info = {
     "name": "Librarian",
     "description": "View what datablocks are coming from which linked libraries",
     "author": "Greg Zaal",
-    "version": (1, 0, 2),
+    "version": (1, 0, 3),
     "blender": (2, 77, 0),
     "location": "Properties Editor > Scene > Librarian panel",
     "warning": "",
