@@ -15,13 +15,14 @@
 #  Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 # END GPL LICENSE BLOCK #####
+# pyright: reportMissingImports=false
 
 bl_info = {
     "name": "Librarian",
     "description": "View what datablocks are coming from which linked libraries",
     "author": "Greg Zaal",
-    "version": (1, 0, 3),
-    "blender": (2, 77, 0),
+    "version": (1, 0, 4),
+    "blender": (2, 92, 0),
     "location": "Properties Editor > Scene > Librarian panel",
     "warning": "",
     "wiki_url": "",
@@ -41,48 +42,52 @@ TODO:
     Maybe make list into a bit of a heirarchy? Nest materials & mesh data under the objects they belong to...
 '''
 
+
 class LibrarianPrefs(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     # addon updater preferences
-    auto_check_update = bpy.props.BoolProperty(
-        name = "Auto-check for Update",
-        description = "If enabled, auto-check for updates using an interval",
-        default = True,
+    auto_check_update: bpy.props.BoolProperty(
+        name="Auto-check for Update",
+        description="If enabled, auto-check for updates using an interval",
+        default=True,
         )
-    updater_intrval_months = bpy.props.IntProperty(
+    updater_intrval_months: bpy.props.IntProperty(
         name='Months',
-        description = "Number of months between checking for updates",
+        description="Number of months between checking for updates",
         default=0,
         min=0
         )
-    updater_intrval_days = bpy.props.IntProperty(
+    updater_intrval_days: bpy.props.IntProperty(
         name='Days',
-        description = "Number of days between checking for updates",
+        description="Number of days between checking for updates",
         default=7,
         min=0,
         )
-    updater_intrval_hours = bpy.props.IntProperty(
+    updater_intrval_hours: bpy.props.IntProperty(
         name='Hours',
-        description = "Number of hours between checking for updates",
+        description="Number of hours between checking for updates",
         default=0,
         min=0,
         max=23
         )
-    updater_intrval_minutes = bpy.props.IntProperty(
+    updater_intrval_minutes: bpy.props.IntProperty(
         name='Minutes',
-        description = "Number of minutes between checking for updates",
+        description="Number of minutes between checking for updates",
         default=0,
         min=0,
         max=59
         )
+    updater_expand_prefs: bpy.props.BoolProperty(default=False)
 
     def draw(self, context):
         layout=self.layout
         addon_updater_ops.update_settings_ui(self, context)
 
+
 class LibrarianSettings(bpy.types.PropertyGroup):
-    expanded = bpy.props.StringProperty()  # Used to keep track of which libs are expanded
+    expanded: bpy.props.StringProperty()  # Used to keep track of which libs are expanded
+
 
 #####  Functions  #####
 def get_linked_data():
@@ -96,12 +101,14 @@ def get_linked_data():
                 if id_data.library:
                     yield id_data
 
+
 def count_type(data, rna_type):
     c = 0
     for d in data:
         if d.bl_rna.name == rna_type:
             c += 1
     return c
+
 
 def count_types(data):
     rna_types = {}
@@ -120,6 +127,7 @@ def count_types(data):
         else:
             rna_types[t] = 1
     return rna_types
+
 
 def type_icon(t):
 
@@ -162,16 +170,18 @@ def type_icon(t):
     else:
         return "QUESTION"  # default icon
 
+
 def pad_lib_name(lib):
     """ Used to ensure lib names do not match inside each other ('Lib' won't match 'Lib.001') """
     return ("__###_" + lib + "_###__")
 
+
 #####  Operators #####
-class LibrarianToggleExpand(bpy.types.Operator):
+class LIBRARIAN_OT_expand(bpy.types.Operator):
     """Show/hide the list of datablocks linked"""
     bl_idname = "librarian.expand"
     bl_label = "Expand"
-    lib = bpy.props.StringProperty()  # name of lib to toggle
+    lib: bpy.props.StringProperty()  # name of lib to toggle
 
     def execute(self, context):
         expanded = context.scene.librarian_settings.expanded
@@ -184,26 +194,28 @@ class LibrarianToggleExpand(bpy.types.Operator):
 
         return {'FINISHED'}
 
-class LibrarianReload(bpy.types.Operator):
+
+class LIBRARIAN_OT_reload(bpy.types.Operator):
     """Refresh this library to fetch any changes made to that file"""
     bl_idname = "librarian.reload"
     bl_label = "Reload"
-    lib = bpy.props.StringProperty()
     bl_options = {'INTERNAL'}
+    lib: bpy.props.StringProperty()
 
     def execute(self, context):
         bpy.data.libraries[self.lib].reload()
 
         return {'FINISHED'}
 
-class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
+
+class LIBRARIAN_OT_importblend(bpy.types.Operator, ImportHelper):
     """Import all objects from another file into the current scene, keeping the linked libraries in tact"""
     bl_idname = 'librarian.import'
     bl_label = 'Import Objects from File'
     bl_options = {'REGISTER', 'UNDO'}
-    directory = bpy.props.StringProperty(subtype="DIR_PATH")
-    filename = bpy.props.StringProperty(subtype="FILE_NAME")    
-    # files = CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'})
+    directory: bpy.props.StringProperty(subtype="DIR_PATH")
+    filename: bpy.props.StringProperty(subtype="FILE_NAME")
+    # files: CollectionProperty(type=bpy.types.OperatorFileListElement, options={'HIDDEN', 'SKIP_SAVE'})
 
     def execute(self, context):
         directory = self.directory
@@ -226,7 +238,7 @@ class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
         # Get all the scenes from the selected file
         with bpy.data.libraries.load(filepath) as (data_from, data_to):
             data_to.scenes = data_from.scenes
-        
+
         # Add all objects from those scenes into the current scene
         cur_scene = context.scene
         scene_names = []
@@ -249,8 +261,9 @@ class LibrarianImportBlend(bpy.types.Operator, ImportHelper):
 
         return {'FINISHED'}
 
+
 #####  UI  #####
-class LibrarianImagePathsPanel(bpy.types.Panel):
+class LIBRARIAN_PT_libraries(bpy.types.Panel):
     bl_label = "Librarian"
     bl_idname = "OBJECT_PT_Librarian"
     bl_space_type = 'PROPERTIES'
@@ -259,7 +272,7 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
     bl_options = {'DEFAULT_CLOSED'}
 
     def draw(self, context):
-        addon_updater_ops.check_for_update_background(context)
+        addon_updater_ops.check_for_update_background()
 
         layout = self.layout
         linked_data = get_linked_data()
@@ -276,12 +289,12 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
         for lib in libs:
             padded_name = pad_lib_name(lib.name)
             is_expanded = padded_name in settings.expanded
-            
+
             box = maincol.box()
             col = box.column(align=True)
             row = col.row()
             row.operator('librarian.expand', text="", emboss=False, icon='TRIA_RIGHT' if not is_expanded else 'TRIA_DOWN').lib = padded_name
-            row.label(bpy.path.basename(lib.filepath))
+            row.label(text=bpy.path.basename(lib.filepath))
 
             if is_expanded:
                 row = col.row(align=True)
@@ -293,8 +306,8 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
                 row = col.row(align=True)
                 row.alignment = 'CENTER'
                 for t in type_counts:
-                    row.label(str(type_counts[t]), icon=type_icon(t))
-                    
+                    row.label(text=str(type_counts[t]), icon=type_icon(t))
+
                     # # Debug: print unidentified types
                     # ti = type_icon(t)
                     # if ti == "QUESTION":
@@ -302,28 +315,41 @@ class LibrarianImagePathsPanel(bpy.types.Panel):
 
                 col.separator()
                 for d in libs[lib]:
-                    col.label(d.name, icon=type_icon(d.rna_type.name))
+                    col.label(text=d.name, icon=type_icon(d.rna_type.name))
         if len(libs) == 0:
-            maincol.label("There are no linked libraries :)")
-        
+            maincol.label(text="There are no linked libraries :)")
+
         maincol.separator()
         maincol.operator('librarian.import', icon='LIBRARY_DATA_DIRECT')
 
         addon_updater_ops.update_notice_box_ui(self, context)
-        
+
+
+classes = [
+    LibrarianPrefs,
+    LibrarianSettings,
+    LIBRARIAN_OT_expand,
+    LIBRARIAN_OT_reload,
+    LIBRARIAN_OT_importblend,
+    LIBRARIAN_PT_libraries
+]
 
 
 def register():
-    addon_updater_ops.register(bl_info)
-
-    bpy.utils.register_module(__name__)
+    from bpy.utils import register_class
+    for cls in classes:
+        register_class(cls)
 
     bpy.types.Scene.librarian_settings = bpy.props.PointerProperty(type=LibrarianSettings)
+
 
 def unregister():
     del bpy.types.Scene.librarian_settings
 
-    bpy.utils.unregister_module(__name__)
+    from bpy.utils import unregister_class
+    for cls in reversed(classes):
+        unregister_class(cls)
+
 
 if __name__ == "__main__":
     register()
