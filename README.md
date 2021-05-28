@@ -4,7 +4,7 @@ A simple Blender add-on that shows what files (and what data from those files) i
 
 [Download latest version](https://github.com/gregzaal/librarian/archive/refs/heads/master.zip) | [See change log](https://github.com/gregzaal/librarian/commits/master)
 
-![screenshot](http://i.imgur.com/iZkVVAk.png)
+![screenshot](https://github.com/gregzaal/librarian/raw/master/screenshot.png)
 
 <sup>(This screenshot will probably get outdated pretty quick, but you get the idea)</sup>
 
